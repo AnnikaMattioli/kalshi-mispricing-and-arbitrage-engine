@@ -28,3 +28,13 @@ Each sweep writes its own versioned JSON Lines file under the Git-ignored `captu
 Official references are the [public market-data guide](https://docs.kalshi.com/getting_started/quick_start_market_data), [market listing endpoint](https://docs.kalshi.com/api-reference/market/get-markets), and [order-book endpoint](https://docs.kalshi.com/api-reference/market/get-market-orderbook).
 
 See the [Phase 1 review](docs/phase-1-weather.md) for live coverage and the settlement map.
+
+## Phase 2 snapshot scanner
+
+Scan one complete capture from the Phase 1 review. The command evaluates all candidates at the capture's sweep end and prints JSON with the payout floors, simulated fills, fees, and decision for each candidate.
+
+```sh
+python3 -m kalshi_engine.scan captures/20261109T000433Z-KXHIGHNY-c05cb392.jsonl --event KXHIGHNY-26NOV09
+```
+
+Use a local capture containing the selected event. The scanner defaults to one whole contract per leg and a 10-second maximum age measured from the start of each book request. See the [Phase 2 review](docs/phase-2-weather.md) for the worked example and limits.
