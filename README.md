@@ -1,0 +1,30 @@
+# Kalshi mispricing and arbitrage research
+
+Phase 1 records public Kalshi market metadata and order-book depth for local research. The first series is daily high temperature in New York City (`KXHIGHNY`).
+
+## Run locally
+
+Use Python 3.12 from the repository root. The collector uses the standard library and Kalshi's unauthenticated production REST API.
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m kalshi_engine.collect --once
+python3 -m kalshi_engine.collect
+```
+
+The last command polls every 60 seconds while the process is running. Press Ctrl+C to stop. Use `--help` to see options. On the development Mac, the Python installation needed the system certificate bundle. If you see a certificate verification error and have the same bundle, prefix the command with `SSL_CERT_FILE=/etc/ssl/cert.pem`.
+
+## Captures and provenance
+
+Each sweep writes its own versioned JSON Lines file under the Git-ignored `captures/` directory. Use that directory for custom paths as well, for example `--output captures/experiment`. Keep API captures local pending a redistribution review. Keep credentials outside the repository.
+
+- `sweep_start` records the series, requested depth, and local UTC start time.
+- `series`, `markets`, and `event` record the original JSON payloads, including contract rules and source links. Market discovery follows all cursors for the open-market filter.
+- `book` records the original YES and NO bid ladders for each discovered market. The default requests all available price levels. Prices and quantities retain their fixed-point strings. A bid on one side implies an ask on the other at one dollar minus the bid, with the same size.
+- Each request stores its URL, ticker, local UTC start time and receipt or failure time, and HTTP status when available. Empty ladders are valid. Request failures and unavailable books are counted separately from empty books.
+- `sweep_end` records completion time and coverage counts. Missing summary records indicate an interrupted sweep. A summary can also report request or discovery failures. `--once` exits with status 1 on detected failures or when it receives no books.
+- Receipt times measure when the collector had each response. The REST responses provide snapshots without per-level exchange timestamps. A sweep spans multiple requests, and activity between polls is unobserved.
+
+Official references are the [public market-data guide](https://docs.kalshi.com/getting_started/quick_start_market_data), [market listing endpoint](https://docs.kalshi.com/api-reference/market/get-markets), and [order-book endpoint](https://docs.kalshi.com/api-reference/market/get-market-orderbook).
+
+See the [Phase 1 review](docs/phase-1-weather.md) for live coverage and the settlement map.
