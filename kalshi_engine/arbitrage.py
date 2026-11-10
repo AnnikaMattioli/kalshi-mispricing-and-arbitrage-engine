@@ -72,10 +72,10 @@ def payout_floors(legs, conditions):
     return ordinary, min(ordinary, fallback)
 
 
-def candidates(conditions):
+def candidates(conditions, *, include_basket=True):
     for ticker in conditions:
         yield "same_market", (Leg(ticker, "yes"), Leg(ticker, "no"))
-    if len(conditions) >= 2:
+    if include_basket and len(conditions) >= 2:
         yield "outcome_basket", tuple(Leg(ticker, "yes") for ticker in conditions)
     for a, b in combinations(conditions.values(), 2):
         if a.operator == b.operator == "less" and a.upper != b.upper:

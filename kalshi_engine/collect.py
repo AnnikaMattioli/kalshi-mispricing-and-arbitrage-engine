@@ -64,7 +64,7 @@ def book_counts(payload):
         return None
 
 
-def collect(directory, series, depth, request=fetch):
+def collect(directory, series, depth, request=fetch, *, event=None):
     """Write one JSONL file per sweep. A summary marks the end of a sweep."""
     directory.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -92,12 +92,14 @@ def collect(directory, series, depth, request=fetch):
                 retry_delay = max(60, int(after)) if after.isdecimal() else 60
             return response.get("payload")
 
-        write("sweep_start", started_at=utc_now(), series=series, depth=depth)
+        write("sweep_start", started_at=utc_now(), series=series, depth=depth, event=event)
         get("series", f"series/{series}", series)
         cursor = ""
         seen_cursors = set()
         while not retry_delay:
             query = {"series_ticker": series, "status": "open", "limit": 100}
+            if event:
+                query["event_ticker"] = event
             if cursor:
                 query["cursor"] = cursor
             page = get("markets", "markets", series, **query)
@@ -113,6 +115,9 @@ def collect(directory, series, depth, request=fetch):
                 ):
                     counts["invalid_markets"] += 1
                     continue
+                if event and market["event_ticker"] != event:
+                    counts["invalid_markets"] += 1
+                    continue
                 markets[market["ticker"]] = market["event_ticker"]
             cursor = page.get("cursor")
             if not cursor:
@@ -123,10 +128,10 @@ def collect(directory, series, depth, request=fetch):
             seen_cursors.add(cursor)
 
         counts["markets_discovered"] = len(markets)
-        for event in sorted(set(markets.values())):
+        for event_ticker in sorted(set(markets.values())):
             if retry_delay:
                 break
-            get("event", f"events/{event}", event)
+            get("event", f"events/{event_ticker}", event_ticker)
 
         for ticker in sorted(markets):
             if retry_delay:
@@ -152,6 +157,7 @@ def collect(directory, series, depth, request=fetch):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--series", default="KXHIGHNY")
+    parser.add_argument("--event", help="only collect this event ticker")
     parser.add_argument("--depth", type=int, choices=range(101), default=0,
                         metavar="0..100", help="levels per side (0 requests all levels)")
     parser.add_argument("--interval", type=int, default=60, help="seconds between sweep starts")
@@ -161,10 +167,12 @@ def main():
     if args.interval <= 0 or not re.fullmatch(r"[A-Z0-9_-]+", args.series):
         parser.error("interval must be positive and series must be an uppercase ticker")
 
+    if args.event and not re.fullmatch(r"[A-Z0-9_.-]+", args.event):
+        parser.error("event must be an uppercase ticker")
     try:
         while True:
             started = monotonic()
-            path, counts, retry_delay = collect(args.output, args.series, args.depth)
+            path, counts, retry_delay = collect(args.output, args.series, args.depth, event=args.event)
             print(f"{path} {json.dumps(dict(counts), sort_keys=True)}", flush=True)
             if args.once:
                 incomplete = any(counts[key] for key in (

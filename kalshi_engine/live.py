@@ -1,10 +1,11 @@
-"""Collect and scan public NYC books locally. Emits one JSON object per sweep."""
+"""Collect and scan public Kalshi books locally. Emits one JSON object per sweep."""
 import argparse
 from decimal import Decimal, InvalidOperation
 import json
 from pathlib import Path
 from time import monotonic, sleep
 
+from kalshi_engine import fed
 from kalshi_engine.collect import collect
 from kalshi_engine.scan import encode, event_tickers, load_frame, read_capture, scan_frame
 
@@ -12,6 +13,7 @@ from kalshi_engine.scan import encode, event_tickers, load_frame, read_capture, 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("captures"))
+    parser.add_argument("--series", choices=("KXHIGHNY", "KXFED"), default="KXHIGHNY")
     parser.add_argument("--interval", type=int, default=60)
     parser.add_argument("--max-age", type=int, default=10)
     parser.add_argument("--quantity", type=int, default=1)
@@ -19,10 +21,11 @@ def main():
     args = parser.parse_args()
     if min(args.interval, args.max_age, args.quantity) < 1:
         parser.error("interval, maximum age and quantity must be positive")
+    event = fed.EVENT if args.series == "KXFED" else None
     try:
         while True:
             started = monotonic()
-            path, counts, retry_delay = collect(args.output, "KXHIGHNY", 0)
+            path, counts, retry_delay = collect(args.output, args.series, 0, event=event)
             records = read_capture(path)
             events = {}
             for event in event_tickers(records):

@@ -58,3 +58,15 @@ python3 -m kalshi_engine.replay captures/20261110T2055*.jsonl \
 ```
 
 For other captures, pass the sweep paths and the event ticker they contain. See the [Phase 3 review](docs/phase-3-replay.md) for the execution assumptions and measured results.
+
+## Phase 4 economics checkpoint
+
+The scanner and replay support the reviewed December 2026 Fed funds target-rate event. From the project folder:
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m kalshi_engine.scan captures/20261110T210247Z-KXFED-c73bbfb8.jsonl --event KXFED-26DEC
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live --series KXFED --once
+```
+
+The Fed live mode limits collection to the reviewed meeting. See the [economics review](docs/phase-4-economics.md) for the settlement source, exception handling and measured book coverage.

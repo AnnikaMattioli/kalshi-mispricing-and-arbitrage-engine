@@ -1,4 +1,4 @@
-"""Evaluate verified NYC weather contracts from one local collector sweep."""
+"""Evaluate verified contracts from one local collector sweep."""
 import argparse
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 
+from kalshi_engine import fed
 from kalshi_engine.arbitrage import Book, Condition, candidates, evaluate
 from kalshi_engine.collect import book_counts
 
@@ -82,6 +83,8 @@ class Frame:
     books: dict
     close_times: dict
     multiplier: Decimal
+    include_basket: bool = True
+    all_no_on_missing: bool = False
 
 
 def read_capture(path):
@@ -118,18 +121,27 @@ def load_frame(records, event):
             events[record["ticker"]] = payload["event"]
         elif kind == "book":
             books[record["ticker"]] = record
-    if (series.get("ticker"), series.get("contract_terms_url"), series.get("fee_type")) != (
-        "KXHIGHNY", TERMS_URL, "quadratic"
-    ):
-        raise ValueError("unverified series, terms or fee type")
+    series_ticker = series.get("ticker")
+    if series_ticker == "KXHIGHNY":
+        terms = TERMS_URL
+        fee_type = "quadratic"
+        source = {"name": "The Weather Company", "url": "https://weather.com/kalshi"}
+    elif series_ticker == "KXFED":
+        terms = fed.TERMS_URL
+        fee_type = "quadratic_with_maker_fees"
+        source = fed.SOURCE
+    else:
+        raise ValueError("unverified series")
+    if (series.get("contract_terms_url"), series.get("fee_type")) != (terms, fee_type):
+        raise ValueError("unverified terms or fee type")
     metadata = events.get(event, {})
-    if metadata.get("series_ticker") != "KXHIGHNY" or metadata.get("settlement_sources") != [
-        {"name": "The Weather Company", "url": "https://weather.com/kalshi"}
-    ]:
+    if (metadata.get("event_ticker"), metadata.get("series_ticker"),
+            metadata.get("settlement_sources")) != (event, series_ticker, [source]):
         raise ValueError("missing verified event settlement source")
     if metadata.get("fee_type_override") or metadata.get("fee_multiplier_override") is not None:
         raise ValueError("event fee override requires review")
-    conditions = verified_conditions(event, markets)
+    is_fed = series_ticker == "KXFED"
+    conditions = fed.verified_conditions(event, markets, metadata) if is_fed else verified_conditions(event, markets)
     multiplier = Decimal(str(series["fee_multiplier"]))
     if not multiplier.is_finite() or multiplier < 0:
         raise ValueError("invalid fee multiplier")
@@ -137,14 +149,21 @@ def load_frame(records, event):
     selected_books = {ticker: parse_book(books[ticker]) for ticker in conditions if ticker in books}
     close_times = {ticker: datetime.fromisoformat(markets[ticker]["close_time"])
                    for ticker in conditions}
-    return Frame(as_of, conditions, selected_books, close_times, multiplier)
+    return Frame(as_of, conditions, selected_books, close_times, multiplier,
+                 include_basket=not is_fed, all_no_on_missing=is_fed)
 
 
 def scan_frame(frame, quantity, max_age):
     books = {ticker: book for ticker, book in frame.books.items()
              if frame.as_of < frame.close_times[ticker]}
-    return [evaluate(kind, legs, frame.conditions, books, quantity, frame.as_of,
-                     max_age, frame.multiplier) for kind, legs in candidates(frame.conditions)]
+    results = []
+    for kind, legs in candidates(frame.conditions, include_basket=frame.include_basket):
+        result = evaluate(kind, legs, frame.conditions, books, quantity, frame.as_of,
+                          max_age, frame.multiplier)
+        if frame.all_no_on_missing:
+            result["no_data_payout"] = sum(leg.side == "no" for leg in legs) * quantity
+        results.append(result)
+    return results
 
 
 def scan(records, event, quantity, max_age):
