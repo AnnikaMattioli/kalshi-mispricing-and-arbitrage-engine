@@ -82,3 +82,17 @@ SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live --series KXNBAGAME
 ```
 
 The capture works with the same replay command using the NBA event ticker. The [sports review](docs/phase-4-sports.md) records the settlement cases and measured depth.
+
+## Phase 5 statistical mispricing
+
+Reproduce the fixed NBA study from the saved local request log and compare against any local depth captures:
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m kalshi_engine.model captures/phase-5/requests.jsonl \
+  --depth captures/*KXNBAGAME*.jsonl > captures/phase-5/report.json
+```
+
+Omit the `--depth` argument if you have no NBA book captures. To fetch the same date window while it is still in Kalshi's recent-data tier, use `SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.model_data --output captures/phase-5-download`. The downloader creates a new request log and requires an unused output filename. Once the recent-data cutoff moves past the cohort, replay the saved request log.
+
+See the [Phase 5 research review](docs/phase-5-model.md) for the forecast design, holdout scores, calibration, and execution coverage.
