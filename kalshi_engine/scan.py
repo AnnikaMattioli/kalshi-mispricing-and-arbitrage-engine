@@ -1,26 +1,35 @@
 """Evaluate verified NYC weather contracts from one local collector sweep."""
 import argparse
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 
 from kalshi_engine.arbitrage import Book, Condition, candidates, evaluate
 from kalshi_engine.collect import book_counts
 
-# Event-specific review in docs/phase-1-weather.md. Future events require review.
-VERIFIED = {
-    "KXHIGHNY-26NOV08": ("Nov 8, 2026", 61),
-    "KXHIGHNY-26NOV09": ("Nov 9, 2026", 57),
-}
 SECONDARY_RULES_HASH = "c1f11eaf372267f2e69ca8ba131916928052ec5e92138e45c16e197f2d4bb507"
 TERMS_URL = "https://assets.kalshi.com/contract_terms/GLOBALTEMPERATURE.pdf"
 
 
 def verified_conditions(event, markets):
-    date, start = VERIFIED[event]
+    match = re.fullmatch(r"KXHIGHNY-(\d{2})([A-Z]{3})(\d{2})", event)
+    if match is None:
+        raise ValueError(f"unverified NYC event ticker {event}")
+    year, month, day = match.groups()
+    months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+    if month.title() not in months:
+        raise ValueError(f"unverified NYC event month {event}")
+    event_date = datetime(2000 + int(year), months.index(month.title()) + 1, int(day))
+    date = f"{months[event_date.month - 1]} {event_date.day}, {event_date.year}"
+    tails = [market.get("cap_strike") for market in markets.values()
+             if market.get("event_ticker") == event and market.get("strike_type") == "less"]
+    if len(tails) != 1 or type(tails[0]) is not int:
+        raise ValueError(f"expected one integer lower tail for {event}")
+    start = tails[0]
     prefix = f"If the maximum temperature recorded at New York City (CLINYC) for {date}, is "
     suffix = "° fahrenheit according to The Weather Company, then the market resolves to Yes."
     specifications = [(f"T{start}", "less", None, start, f"less than {start}")]
@@ -66,7 +75,25 @@ def parse_book(record):
                 datetime.fromisoformat(record["received_at"]), *ladders)
 
 
-def scan(records, event, quantity, max_age):
+@dataclass(frozen=True)
+class Frame:
+    as_of: datetime
+    conditions: dict
+    books: dict
+    close_times: dict
+    multiplier: Decimal
+
+
+def read_capture(path):
+    with path.open(encoding="utf-8") as capture:
+        return [json.loads(line) for line in capture]
+
+
+def event_tickers(records):
+    return sorted({r["ticker"] for r in records if r["kind"] == "event" and r.get("payload")})
+
+
+def load_frame(records, event):
     if (len(records) < 2 or any(r.get("schema_version") != 1 for r in records)
             or records[0]["kind"] != "sweep_start" or records[-1]["kind"] != "sweep_end"):
         raise ValueError("expected one complete version 1 sweep")
@@ -108,8 +135,20 @@ def scan(records, event, quantity, max_age):
         raise ValueError("invalid fee multiplier")
     as_of = datetime.fromisoformat(records[-1]["ended_at"])
     selected_books = {ticker: parse_book(books[ticker]) for ticker in conditions if ticker in books}
-    return [evaluate(kind, legs, conditions, selected_books, quantity, as_of, max_age, multiplier)
-            for kind, legs in candidates(conditions)]
+    close_times = {ticker: datetime.fromisoformat(markets[ticker]["close_time"])
+                   for ticker in conditions}
+    return Frame(as_of, conditions, selected_books, close_times, multiplier)
+
+
+def scan_frame(frame, quantity, max_age):
+    books = {ticker: book for ticker, book in frame.books.items()
+             if frame.as_of < frame.close_times[ticker]}
+    return [evaluate(kind, legs, frame.conditions, books, quantity, frame.as_of,
+                     max_age, frame.multiplier) for kind, legs in candidates(frame.conditions)]
+
+
+def scan(records, event, quantity, max_age):
+    return scan_frame(load_frame(records, event), quantity, max_age)
 
 
 def encode(value):
@@ -123,16 +162,14 @@ def encode(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
-    parser.add_argument("--event", choices=VERIFIED, required=True)
+    parser.add_argument("--event", required=True)
     parser.add_argument("--quantity", type=int, default=1, help="whole contracts per leg")
     parser.add_argument("--max-age", type=int, default=10, help="seconds at sweep end")
     args = parser.parse_args()
     if args.quantity < 1 or args.max_age < 1:
         parser.error("quantity and maximum age must be positive")
     try:
-        with args.capture.open(encoding="utf-8") as capture:
-            records = [json.loads(line) for line in capture]
-        results = scan(records, args.event, Decimal(args.quantity), args.max_age)
+        results = scan(read_capture(args.capture), args.event, Decimal(args.quantity), args.max_age)
     except (OSError, KeyError, TypeError, ValueError, InvalidOperation) as exc:
         parser.exit(1, f"Scan failed: {exc}\n")
     print(json.dumps(results, indent=2, default=encode))

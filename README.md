@@ -38,3 +38,23 @@ python3 -m kalshi_engine.scan captures/20261109T000433Z-KXHIGHNY-c05cb392.jsonl 
 ```
 
 Use a local capture containing the selected event. The scanner defaults to one whole contract per leg and a 10-second maximum age measured from the start of each book request. See the [Phase 2 review](docs/phase-2-weather.md) for the worked example and limits.
+
+## Phase 3 live scanner and replay
+
+From the project folder, run the live scanner once or let it poll every 60 seconds. On the development Mac, use the certificate bundle prefix shown below.
+
+```sh
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live --once
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live
+```
+
+Each sweep saves a local capture and prints a JSON summary. The scanner checks the full six-strike NYC template and skips events with changed rules, fees, or settlement metadata outside the supported profile. Press Ctrl+C to stop polling.
+
+Replay the three local checkpoint captures with the same parameters used in the review:
+
+```sh
+python3 -m kalshi_engine.replay captures/20261110T2055*.jsonl \
+  --event KXHIGHNY-26NOV11 --delay 12 --max-age 15 --quantity 100
+```
+
+For other captures, pass the sweep paths and the event ticker they contain. See the [Phase 3 review](docs/phase-3-replay.md) for the execution assumptions and measured results.

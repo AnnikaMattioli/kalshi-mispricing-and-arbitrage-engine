@@ -87,7 +87,7 @@ def candidates(conditions):
         yield "nested_threshold", (Leg(wide.ticker, "yes"), Leg(narrow.ticker, "no"))
 
 
-def walk_book(book, side, quantity, multiplier):
+def walk_book(book, side, quantity, multiplier, *, allow_partial=False, limit=ONE, participation=ONE):
     """Simulate one fill per consumed level and one order per leg."""
     bids = book.no_bids if side == "yes" else book.yes_bids
     remaining = quantity
@@ -95,7 +95,11 @@ def walk_book(book, side, quantity, multiplier):
     fills = []
     for bid, available in sorted(bids, reverse=True):
         price = ONE - bid
-        take = min(remaining, available)
+        if price > limit:
+            break
+        take = min(remaining, (available * participation).quantize(CENT, rounding=ROUND_FLOOR))
+        if not take:
+            continue
         trade_fee = (Decimal("0.07") * multiplier * take * price * (ONE - price)).quantize(
             MICRO, rounding=ROUND_CEILING
         )
@@ -108,7 +112,7 @@ def walk_book(book, side, quantity, multiplier):
         remaining -= take
         if not remaining:
             return tuple(fills)
-    return None
+    return tuple(fills) if allow_partial else None
 
 
 def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier):
@@ -122,6 +126,8 @@ def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier
         return dict(result, status="incomplete_outcome_basket")
 
     simulated = []
+    receipt_times = []
+    quote_ages = []
     for leg in legs:
         book = books.get(leg.ticker)
         if book is None:
@@ -130,6 +136,8 @@ def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier
             as_of - book.started_at > timedelta(seconds=max_age)
         ):
             return dict(result, status="stale_quote", blocked_leg=leg)
+        receipt_times.append(book.received_at)
+        quote_ages.append((as_of - book.started_at).total_seconds())
         fills = walk_book(book, leg.side, quantity, multiplier)
         if fills is None:
             return dict(result, status="insufficient_depth", blocked_leg=leg)
@@ -139,4 +147,6 @@ def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier
     edge = result["conservative_payout_floor"] - debit
     return dict(result, status="positive_simulated_edge" if edge > 0 else "no_edge",
                 fills=simulated, debit=debit, conservative_edge=edge,
+                quote_age_seconds=quote_ages,
+                quote_span_seconds=(max(receipt_times) - min(receipt_times)).total_seconds(),
                 ordinary_edge=result["ordinary_payout_floor"] - debit)
