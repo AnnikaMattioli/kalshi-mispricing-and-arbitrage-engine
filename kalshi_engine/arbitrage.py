@@ -60,12 +60,17 @@ def outcome_samples(conditions):
             edges[-1] + ONE]
 
 
-def payout_floors(legs, conditions):
+def payout_floors(legs, conditions, ordinary_outcomes=None):
     """Per bundle, assuming $1 complements within a market in every state."""
     relevant = {leg.ticker: conditions[leg.ticker] for leg in legs}
+    if ordinary_outcomes is None:
+        ordinary_outcomes = (
+            {ticker: condition.pays_yes(value) for ticker, condition in relevant.items()}
+            for value in outcome_samples(relevant.values())
+        )
     ordinary = min(sum(
-        relevant[leg.ticker].pays_yes(value) == (leg.side == "yes") for leg in legs
-    ) for value in outcome_samples(relevant.values()))
+        state[leg.ticker] if leg.side == "yes" else 1 - state[leg.ticker] for leg in legs
+    ) for state in ordinary_outcomes)
     # Allow each fallback YES value to range independently over [0, 1].
     fallback = sum(min(legs.count(Leg(ticker, "yes")), legs.count(Leg(ticker, "no")))
                    for ticker in relevant)
@@ -115,8 +120,9 @@ def walk_book(book, side, quantity, multiplier, *, allow_partial=False, limit=ON
     return tuple(fills) if allow_partial else None
 
 
-def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier):
-    ordinary, conservative = payout_floors(legs, conditions)
+def evaluate(kind, legs, conditions, books, quantity, as_of, max_age, multiplier, *,
+             ordinary_outcomes=None):
+    ordinary, conservative = payout_floors(legs, conditions, ordinary_outcomes)
     result = {
         "strategy": kind, "legs": legs, "quantity": quantity,
         "ordinary_payout_floor": ordinary * quantity,

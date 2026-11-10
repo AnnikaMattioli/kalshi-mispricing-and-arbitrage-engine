@@ -70,3 +70,15 @@ SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live --series KXFED --o
 ```
 
 The Fed live mode limits collection to the reviewed meeting. See the [economics review](docs/phase-4-economics.md) for the settlement source, exception handling and measured book coverage.
+
+## Phase 4 sports checkpoint
+
+Scan the local Miami–Utah full-game winner capture or take a fresh sweep while the reviewed event is open:
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m kalshi_engine.scan captures/20261110T211202Z-KXNBAGAME-ce4954a4.jsonl --event KXNBAGAME-26NOV10MIAUTA
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.live --series KXNBAGAME --once
+```
+
+The capture works with the same replay command using the NBA event ticker. The [sports review](docs/phase-4-sports.md) records the settlement cases and measured depth.

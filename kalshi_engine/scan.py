@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import re
 
-from kalshi_engine import fed
+from kalshi_engine import fed, nba
 from kalshi_engine.arbitrage import Book, Condition, candidates, evaluate
 from kalshi_engine.collect import book_counts
 
@@ -85,6 +85,7 @@ class Frame:
     multiplier: Decimal
     include_basket: bool = True
     all_no_on_missing: bool = False
+    ordinary_outcomes: tuple | None = None
 
 
 def read_capture(path):
@@ -125,23 +126,33 @@ def load_frame(records, event):
     if series_ticker == "KXHIGHNY":
         terms = TERMS_URL
         fee_type = "quadratic"
-        source = {"name": "The Weather Company", "url": "https://weather.com/kalshi"}
+        sources = [{"name": "The Weather Company", "url": "https://weather.com/kalshi"}]
     elif series_ticker == "KXFED":
         terms = fed.TERMS_URL
         fee_type = "quadratic_with_maker_fees"
-        source = fed.SOURCE
+        sources = [fed.SOURCE]
+    elif series_ticker == "KXNBAGAME":
+        terms = nba.TERMS_URL
+        fee_type = "quadratic_with_maker_fees"
+        sources = nba.SOURCES
     else:
         raise ValueError("unverified series")
     if (series.get("contract_terms_url"), series.get("fee_type")) != (terms, fee_type):
         raise ValueError("unverified terms or fee type")
     metadata = events.get(event, {})
     if (metadata.get("event_ticker"), metadata.get("series_ticker"),
-            metadata.get("settlement_sources")) != (event, series_ticker, [source]):
+            metadata.get("settlement_sources")) != (event, series_ticker, sources):
         raise ValueError("missing verified event settlement source")
     if metadata.get("fee_type_override") or metadata.get("fee_multiplier_override") is not None:
         raise ValueError("event fee override requires review")
     is_fed = series_ticker == "KXFED"
-    conditions = fed.verified_conditions(event, markets, metadata) if is_fed else verified_conditions(event, markets)
+    ordinary_outcomes = None
+    if is_fed:
+        conditions = fed.verified_conditions(event, markets, metadata)
+    elif series_ticker == "KXNBAGAME":
+        conditions, ordinary_outcomes = nba.verified_outcomes(event, markets, metadata)
+    else:
+        conditions = verified_conditions(event, markets)
     multiplier = Decimal(str(series["fee_multiplier"]))
     if not multiplier.is_finite() or multiplier < 0:
         raise ValueError("invalid fee multiplier")
@@ -150,7 +161,8 @@ def load_frame(records, event):
     close_times = {ticker: datetime.fromisoformat(markets[ticker]["close_time"])
                    for ticker in conditions}
     return Frame(as_of, conditions, selected_books, close_times, multiplier,
-                 include_basket=not is_fed, all_no_on_missing=is_fed)
+                 include_basket=not is_fed, all_no_on_missing=is_fed,
+                 ordinary_outcomes=ordinary_outcomes)
 
 
 def scan_frame(frame, quantity, max_age):
@@ -159,7 +171,7 @@ def scan_frame(frame, quantity, max_age):
     results = []
     for kind, legs in candidates(frame.conditions, include_basket=frame.include_basket):
         result = evaluate(kind, legs, frame.conditions, books, quantity, frame.as_of,
-                          max_age, frame.multiplier)
+                          max_age, frame.multiplier, ordinary_outcomes=frame.ordinary_outcomes)
         if frame.all_no_on_missing:
             result["no_data_payout"] = sum(leg.side == "no" for leg in legs) * quantity
         results.append(result)
