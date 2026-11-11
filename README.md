@@ -96,3 +96,9 @@ python3 -m kalshi_engine.model captures/phase-5/requests.jsonl \
 Omit the `--depth` argument if you have no NBA book captures. To fetch the same date window while it is still in Kalshi's recent-data tier, use `SSL_CERT_FILE=/etc/ssl/cert.pem python3 -m kalshi_engine.model_data --output captures/phase-5-download`. The downloader creates a new request log and requires an unused output filename. Once the recent-data cutoff moves past the cohort, replay the saved request log.
 
 See the [Phase 5 research review](docs/phase-5-model.md) for the forecast design, holdout scores, calibration, and execution coverage.
+
+## Portfolio dashboard
+
+[Open the public dashboard](https://annikamattioli.github.io/kalshi-mispricing-and-arbitrage-engine/) · [Research write-up and reproducible setup](docs/portfolio-release.md)
+
+The public demo uses fictional inputs. It can also open replay and model reports locally in the browser. The tracked dashboard data can be regenerated with `python3 scripts/build_demo.py`.

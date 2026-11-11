@@ -1,0 +1,65 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b101a; --panel: #111b2a; --border: #2a3a51;
+  --text: #f1f5fe; --muted: #a7b6ce; --cyan: #7de4d7; --blue: #a7baff;
+  font: 16px/1.55 system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+a { color: var(--cyan); text-underline-offset: .25em; }
+button, select, input { font: inherit; }
+button, select { background: #17263a; color: var(--text); border: 1px solid var(--border); border-radius: .45rem; padding: .38rem .65rem; }
+button, select, summary { cursor: pointer; }
+button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.masthead { min-height: 4rem; display: flex; flex-wrap: wrap; gap: .8rem 2rem; align-items: center; justify-content: space-between; padding: .8rem max(1rem, calc((100vw - 72rem) / 2)); border-bottom: 1px solid var(--border); }
+.wordmark { color: var(--text); text-decoration: none; font-weight: 750; }
+.wordmark span { color: var(--cyan); margin-right: .3rem; }
+nav { display: flex; gap: 1rem; font-size: .9rem; }
+main { max-width: 74rem; padding: 0 1rem; margin: auto; }
+.hero { display: grid; grid-template-columns: 1.65fr 1fr; gap: 2rem; align-items: end; padding: 4rem 0 3rem; border-bottom: 1px solid var(--border); }
+.hero h1 { font-size: clamp(2.7rem, 7vw, 5.7rem); line-height: .99; letter-spacing: -.07em; margin: .6rem 0 1.2rem; }
+.hero p { max-width: 44ch; }
+p { color: var(--muted); margin: .4rem 0 .8rem; }
+.kicker { color: var(--cyan); font: 650 .73rem/1.5 ui-monospace, monospace; letter-spacing: .16em; }
+.source-card, .panel, .metric { background: var(--panel); border: 1px solid var(--border); border-radius: .8rem; padding: 1rem 1.2rem; }
+.source-card input { display: block; max-width: 100%; margin: .35rem 0 .7rem; font-size: .85rem; }
+.source-card #file-status { margin-bottom: 0; }
+.section { margin-top: 2.6rem; }
+.section-head { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: .55rem; margin-bottom: .8rem; }
+h2, h3 { line-height: 1.15; margin: 0 0 .25rem; }
+h2 { font-size: clamp(1.75rem, 4vw, 2.7rem); letter-spacing: -.04em; }
+h3 { font-size: 1.12rem; }
+.badge { border: 1px solid var(--border); color: var(--cyan); border-radius: 5rem; padding: .3rem .65rem; font: .78rem ui-monospace, monospace; }
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.controls label { font-size: .85rem; color: var(--muted); }
+.scrubber { display: flex; flex: 1 1 12rem; align-items: center; gap: .6rem; }
+.scrubber input { accent-color: var(--cyan); flex: 1; min-width: 5rem; }
+.controls output { font: .8rem ui-monospace, monospace; color: var(--cyan); }
+.secondary { margin-top: .7rem; gap: .65rem 1.25rem; }
+.secondary select { margin-left: .25rem; max-width: 100%; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; margin: .75rem 0; }
+.metric strong { display: block; font: 650 clamp(1.3rem, 3vw, 2rem) ui-monospace, monospace; color: var(--cyan); margin-top: .2rem; }
+.metric span { color: var(--muted); font-size: .78rem; }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; text-align: left; }
+th, td { border-bottom: 1px solid var(--border); padding: .6rem .5rem; white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; }
+td { font-variant-numeric: tabular-nums; }
+details { margin-top: .9rem; }
+summary { color: var(--cyan); font-size: .88rem; }
+.charts { display: grid; grid-template-columns: .85fr 1.15fr; gap: .7rem; }
+svg { width: 100%; height: auto; display: block; }
+svg text { fill: var(--muted); font: 12px ui-monospace, monospace; }
+svg .axis { stroke: var(--border); stroke-width: 1.3; }
+svg .ideal { stroke: var(--muted); stroke-dasharray: 4 4; }
+svg .model { fill: var(--cyan); }
+svg .baseline { fill: var(--blue); }
+footer { margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+@media (max-width: 700px) {
+  .hero, .charts { grid-template-columns: 1fr; }
+  .hero { padding-top: 2rem; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .secondary label { display: grid; min-width: 0; width: 100%; }
+  .secondary select { margin: 0; }
+}

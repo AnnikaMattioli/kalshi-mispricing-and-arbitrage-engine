@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive research replay for prediction-market settlement, execution and forecast calibration.">
+  <title>Prediction Market Research Lab</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <script type="module" src="dashboard.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="#top"><span aria-hidden="true">◈</span> Research Lab</a>
+    <nav aria-label="Main"><a href="#replay">Replay</a><a href="#model">Model</a><a href="https://github.com/AnnikaMattioli/kalshi-mispricing-and-arbitrage-engine">GitHub ↗</a></nav>
+  </header>
+  <main id="top">
+    <section class="hero" aria-labelledby="title">
+      <div>
+        <p class="kicker">QUANT PORTFOLIO / 01</p>
+        <h1 id="title">Prediction Market<br>Research Lab</h1>
+        <p>Explore how a settlement relationship becomes an execution plan, then stress it against delayed books and partial fills.</p>
+      </div>
+      <aside class="source-card">
+        <p class="kicker">DATA SOURCE</p>
+        <strong id="source">Loading synthetic demo…</strong>
+        <p>Open a local replay or model report to inspect your own run. Files are read in this browser.</p>
+        <label class="file-label">Open report <input id="file" type="file" accept=".json,application/json"></label>
+        <button id="reset" type="button">Reset demo</button>
+        <p id="file-status" role="status"></p>
+      </aside>
+    </section>
+
+    <section id="replay" class="section" aria-labelledby="replay-heading">
+      <div class="section-head">
+        <div><p class="kicker">01 / EXECUTION</p><h2 id="replay-heading">Replay timeline</h2></div>
+        <span class="badge" id="replay-source">Synthetic replay</span>
+      </div>
+      <div class="panel">
+        <div class="controls">
+          <button id="prev" type="button" aria-label="Previous snapshot">←</button>
+          <button id="play" type="button">Play</button>
+          <button id="next" type="button" aria-label="Next snapshot">→</button>
+          <label class="scrubber">Snapshot <input id="timeline" type="range" min="0" max="0" value="0"></label>
+          <output id="time-label" for="timeline"></output>
+        </div>
+        <div class="controls secondary">
+          <label>Plan <select id="plan"></select></label>
+          <label>Execution assumption <select id="scenario"></select></label>
+        </div>
+      </div>
+
+      <div id="summary" class="metrics" aria-live="polite"></div>
+      <div class="panel inspector">
+        <h3>Leg inspector</h3>
+        <p id="execution-note"></p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col">Contract</th><th scope="col">Side</th><th scope="col">Limit</th><th scope="col">Filled</th><th scope="col">Residual</th><th scope="col">Quote age</th><th scope="col">Debit</th><th scope="col">Status</th></tr></thead>
+            <tbody id="legs"></tbody>
+          </table>
+        </div>
+        <details><summary>Scenario counts</summary><div id="scenario-counts" class="table-scroll"></div></details>
+      </div>
+    </section>
+
+    <section id="model" class="section" aria-labelledby="model-heading">
+      <div class="section-head">
+        <div><p class="kicker">02 / FORECAST QUALITY</p><h2 id="model-heading">Model evaluation</h2></div>
+        <span class="badge" id="model-source">Synthetic holdout</span>
+      </div>
+      <div class="charts">
+        <article class="panel"><h3>Brier score</h3><p>Mean squared probability error. Lower is better.</p><div id="brier"></div></article>
+        <article class="panel"><h3>Calibration</h3><p>Mean prediction versus observed frequency. Labels show bin counts.</p><div id="calibration"></div><details><summary>View calibration table</summary><div id="calibration-table" class="table-scroll"></div></details></article>
+      </div>
+      <p id="model-note" class="model-note"></p>
+    </section>
+
+    <footer><p>Research and simulated execution. The bundled examples use fictional contracts and outcomes.</p><a href="https://github.com/AnnikaMattioli/kalshi-mispricing-and-arbitrage-engine/blob/main/docs/portfolio-release.md">Methodology and reproducibility ↗</a></footer>
+  </main>
+</body>
+</html>
