@@ -247,3 +247,7 @@ try {
   $("source").textContent = "Demo unavailable";
   $("file-status").textContent = error.message;
 }
+
+if (location.hostname === "127.0.0.1" && new URLSearchParams(location.search).get("local") === "1") {
+  import("./local-sweeps.js");
+}

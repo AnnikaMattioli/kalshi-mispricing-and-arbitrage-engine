@@ -102,3 +102,13 @@ See the [Phase 5 research review](docs/phase-5-model.md) for the forecast design
 [Open the public dashboard](https://annikamattioli.github.io/kalshi-mispricing-and-arbitrage-engine/) · [Research write-up and reproducible setup](docs/portfolio-release.md)
 
 The public demo uses fictional inputs. It can also open replay and model reports locally in the browser. The tracked dashboard data can be regenerated with `python3 scripts/build_demo.py`.
+
+### Local dashboard for saved sweeps
+
+From the repository root, start the dashboard on your Mac:
+
+```sh
+python3 -m kalshi_engine.dashboard
+```
+
+Open [the local dashboard](http://127.0.0.1:8765/?local=1). It checks the latest saved sweep for each series every five seconds and shows the capture time, age, book coverage, scanner decisions, and quote age at sweep end. A sweep older than 120 seconds is marked stale. Adjust that threshold with `--stale-after`, or use `--captures` to point at another capture folder. The dashboard reads existing files on this Mac. A refresh checks for saved sweeps and makes no exchange request. Press Ctrl+C to stop the server.

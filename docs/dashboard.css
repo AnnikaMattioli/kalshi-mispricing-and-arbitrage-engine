@@ -63,3 +63,6 @@ footer { margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--bor
   .secondary label { display: grid; min-width: 0; width: 100%; }
   .secondary select { margin: 0; }
 }
+.sweep-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: .75rem; }
+.sweep-results h4 { margin-bottom: .25rem; overflow-wrap: anywhere; }
+.sweep-filename { overflow-wrap: anywhere; font: .76rem ui-monospace, monospace; }

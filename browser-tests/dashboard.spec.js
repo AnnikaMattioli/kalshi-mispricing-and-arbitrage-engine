@@ -51,3 +51,24 @@ test("rejects a malformed report and fits a narrow viewport", async ({ page }) =
   await expect(page.locator("#file-status")).toContainText("Could not open report");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
+
+test("local sweep panel refreshes and exposes stale and failed captures", async ({ page }) => {
+  test.skip(Boolean(process.env.DASHBOARD_URL), "Local dashboard uses a loopback-only route");
+  let sweeps = [{
+    file: "saved.jsonl", series: "KXHIGHNY", status: "complete", stale: true,
+    captured_at: "2026-11-10T20:55:00Z", age_seconds: 3600,
+    counts: {books_received: 6, markets_discovered: 6},
+    events: [{ticker: "KXHIGHNY-DEMO", decisions: {no_edge: 5}, oldest_priced_quote_seconds: 2.5}],
+  }];
+  await page.route("**/api/sweeps", (route) => route.fulfill({
+    json: {checked_at: "2026-11-10T21:55:00Z", sweeps},
+  }));
+  await expect(page.getByRole("heading", {name: "Saved scanner sweeps"})).toBeHidden();
+  await page.goto("./?local=1");
+  await expect(page.locator("#sweep-results")).toContainText("Stale");
+  await expect(page.locator("#sweep-results")).toContainText("2.50 s");
+  sweeps = [{...sweeps[0], status: "failed", counts: {request_failures: 2}, events: []}];
+  await page.getByRole("button", {name: "Refresh sweeps"}).click();
+  await expect(page.locator("#sweep-results")).toContainText("Sweep failed");
+  await expect(page.locator("#sweep-results")).toContainText("2 request failures");
+});
