@@ -17,12 +17,12 @@
     <section class="hero" aria-labelledby="title">
       <div>
         <h1 id="title">Prediction Market<br>Research Lab</h1>
-        <p>Explore how a settlement relationship becomes an execution plan, then stress it against delayed books and partial fills.</p>
+        <p>This dashboard shows how prediction-market contracts pay out, what it could cost to buy them, and how well a model predicts their outcomes. Use the replay to see how delays and limited liquidity affect simulated trades.</p>
       </div>
       <aside class="source-card">
         <p class="kicker">DATA SOURCE</p>
         <strong id="source">Loading synthetic demo…</strong>
-        <p>Open a local replay or model report to inspect your own run. Files are read in this browser.</p>
+        <p>The page starts with fictional examples. Open a replay or model report to explore your own results. Your file stays in this browser.</p>
         <label class="file-label">Open report <input id="file" type="file" accept=".json,application/json"></label>
         <button id="reset" type="button">Reset demo</button>
         <p id="file-status" role="status"></p>
@@ -34,16 +34,17 @@
         <h2 id="local-heading">Saved scanner sweeps</h2>
         <button id="refresh-sweeps" type="button">Refresh sweeps</button>
       </div>
-      <p>Local capture files · Kalshi public REST data as of the recorded sweep</p>
+      <p>A sweep is one pass through the markets. Each card shows when your Mac last saved Kalshi quotes and how many order books arrived. Refresh checks your saved files for newer captures.</p>
       <p id="sweep-status" role="status">Checking saved sweeps…</p>
       <div id="sweep-results" class="sweep-results"></div>
     </section>
 
     <section id="replay" class="section" aria-labelledby="replay-heading">
       <div class="section-head">
-        <div><p class="kicker">01 / EXECUTION</p><h2 id="replay-heading">Replay timeline</h2></div>
+        <h2 id="replay-heading">Replay timeline</h2>
         <span class="badge" id="replay-source">Synthetic replay</span>
       </div>
+      <p>Pick a snapshot, a group of orders, and an execution assumption. An order book shows available prices and quantities. Delays and limited quantities can leave some orders partly filled.</p>
       <div class="panel">
         <div class="controls">
           <button id="prev" type="button" aria-label="Previous snapshot">←</button>
@@ -59,8 +60,10 @@
       </div>
 
       <div id="summary" class="metrics" aria-live="polite"></div>
+      <details><summary>How to read the payout and cost</summary><p>The ordinary payout floor is the minimum payout under normal settlement if every order fills. The conservative floor also allows for exceptional settlement. The simulated net lower bound credits the conservative payout on matched quantities and subtracts the cost of all simulated fills.</p></details>
       <div class="panel inspector">
         <h3>Leg inspector</h3>
+        <p>Each row is one order. The limit is the highest price the simulation will pay. Residual is the quantity left unpaired, and debit is the simulated cost including fees.</p>
         <p id="execution-note"></p>
         <div class="table-scroll">
           <table>
@@ -68,18 +71,19 @@
             <tbody id="legs"></tbody>
           </table>
         </div>
-        <details><summary>Scenario counts</summary><div id="scenario-counts" class="table-scroll"></div></details>
+        <details><summary>Results across all execution assumptions</summary><div id="scenario-counts" class="table-scroll"></div></details>
       </div>
     </section>
 
     <section id="model" class="section" aria-labelledby="model-heading">
       <div class="section-head">
-        <div><p class="kicker">02 / FORECAST QUALITY</p><h2 id="model-heading">Model evaluation</h2></div>
+        <h2 id="model-heading">Model evaluation</h2>
         <span class="badge" id="model-source">Synthetic holdout</span>
       </div>
+      <p>Compare the model with the midpoint between the market’s bid and ask. The charts use a holdout, a group of outcomes reserved for testing the model after training.</p>
       <div class="charts">
-        <article class="panel"><h3>Brier score</h3><p>Mean squared probability error. Lower is better.</p><div id="brier"></div></article>
-        <article class="panel"><h3>Calibration</h3><p>Mean prediction versus observed frequency. Labels show bin counts.</p><div id="calibration"></div><details><summary>View calibration table</summary><div id="calibration-table" class="table-scroll"></div></details></article>
+        <article class="panel"><h3>Brier score</h3><p>Measures how far the predicted probabilities were from the actual outcomes. Lower is better.</p><div id="brier"></div></article>
+        <article class="panel"><h3>Calibration</h3><p>A well-calibrated 70% forecast comes true about 70% of the time. The diagonal represents perfect calibration. The numbers show how many forecasts are in each group.</p><div id="calibration"></div><details><summary>View calibration table</summary><div id="calibration-table" class="table-scroll"></div></details></article>
       </div>
       <p id="model-note" class="model-note"></p>
     </section>
